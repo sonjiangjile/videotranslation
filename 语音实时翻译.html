@@ -308,9 +308,14 @@ function getApiKey() {
 }
 
 // ── Recording ──
+let silenceStart = null;
+let silenceCheckId = null;
+const SILENCE_THRESHOLD = 0.025;
+const SILENCE_DURATION = 1500;
+
 async function toggleMic() {
-  if (isProcessing) return;
-  if (isRecording) {
+  if (isRecording || isProcessing) {
+    // 手动停止
     stopRecording();
   } else {
     if (!getApiKey()) return;
@@ -322,22 +327,62 @@ async function startRecording() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     audioChunks = [];
-    // 尝试多种格式，优先WebM
     const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
                    : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
                    : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus') ? 'audio/ogg;codecs=opus'
                    : 'audio/webm';
+
+    // MediaRecorder
     mediaRecorder = new MediaRecorder(stream, { mimeType });
     mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
+    mediaRecorder.onstop = () => {
       stream.getTracks().forEach(t => t.stop());
+      if (silenceCheckId) { cancelAnimationFrame(silenceCheckId); silenceCheckId = null; }
+      silenceStart = null;
+      // 显示处理中
+      const btn = document.getElementById('micBtn');
+      btn.className = 'mic-btn processing';
+      btn.textContent = '⏳';
+      document.getElementById('micStatus').textContent = 'Gemini 识别中…';
       const blob = new Blob(audioChunks, { type: mimeType });
-      if (blob.size < 1000) { showToast('⚠ 录音太短，请长一点再试'); setRecording(false, false); return; }
-      await processAudio(blob);
+      if (blob.size < 1000) {
+        showToast('⚠ 录音太短');
+        startRecording();
+        return;
+      }
+      processAudio(blob);
     };
     mediaRecorder.start();
+
+    // 静音检测
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyzer = audioContext.createAnalyser();
+    analyzer.fftSize = 256;
+    source.connect(analyzer);
+    silenceStart = null;
+
+    function checkSilence() {
+      if (mediaRecorder.state === 'inactive') return;
+      const data = new Uint8Array(analyzer.frequencyBinCount);
+      analyzer.getByteFrequencyData(data);
+      const avg = data.reduce((a, b) => a + b, 0) / data.length;
+      const normalized = avg / 255;
+
+      if (normalized < SILENCE_THRESHOLD) {
+        if (silenceStart === null) silenceStart = Date.now();
+        else if (Date.now() - silenceStart > SILENCE_DURATION && audioChunks.length > 0) {
+          mediaRecorder.stop();
+          return;
+        }
+      } else {
+        silenceStart = null;
+      }
+      silenceCheckId = requestAnimationFrame(checkSilence);
+    }
+    checkSilence();
+
     setRecording(true, false);
-    showToast('🎤 录音中…');
   } catch(e) {
     showToast('⚠ 麦克风访问被拒绝');
   }
@@ -346,9 +391,6 @@ async function startRecording() {
 function stopRecording() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
-    setRecording(false, true); // processing mode
-    document.getElementById('recogText').innerHTML = '⏳ 识别中…';
-    document.getElementById('recogText').className = 'card-text';
   }
 }
 
@@ -365,12 +407,12 @@ function setRecording(recording, processing) {
   } else if (recording) {
     btn.className = 'mic-btn recording';
     btn.textContent = '🔴';
-    status.textContent = '录音中… 点击🎤停止';
+    status.textContent = '🎤 录音中… 说完自动翻译 · 点击🎤停止';
     status.className = 'mic-status recording';
   } else {
     btn.className = 'mic-btn';
     btn.textContent = '🎤';
-    status.textContent = '点击🎤开始录音';
+    status.textContent = '点击🎤开始 · 说完自动翻译 · 循环续听';
     status.className = 'mic-status';
   }
 }
