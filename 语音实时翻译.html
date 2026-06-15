@@ -412,6 +412,7 @@ let srcLang = 'zh-CN';
 let dstLang = 'ja';
 let isListening = false;
 let autoSpeak = true;
+let userStopped = false;
 let recognition = null;
 let history = [];
 let manualShowing = false;
@@ -427,8 +428,10 @@ const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecogni
 
 function toggleMic() {
   if (isListening) {
+    userStopped = true;
     stopMic();
   } else {
+    userStopped = false;
     startMic();
   }
 }
@@ -469,7 +472,9 @@ function startMic() {
   recognition.onerror = (e) => {
     console.warn('recog error:', e.error);
     if (e.error === 'no-speech') {
-      // ignore - will restart
+      // 没有说话，自动重启
+      if (!userStopped) restartRecognition();
+      return;
     } else if (e.error === 'aborted') {
       // user stopped
     } else {
@@ -479,6 +484,11 @@ function startMic() {
   };
 
   recognition.onend = () => {
+    // 用户主动停止则不重启，否则自动续听
+    if (!userStopped) {
+      restartRecognition();
+      return;
+    }
     setListening(false);
   };
 
@@ -499,6 +509,16 @@ function stopMic() {
   setListening(false);
 }
 
+function restartRecognition() {
+  if (userStopped) return;
+  // 短暂延迟后重新启动语音识别
+  setTimeout(() => {
+    if (!userStopped && !isListening) {
+      startMic();
+    }
+  }, 300);
+}
+
 function setListening(val) {
   isListening = val;
   const btn = document.getElementById('micBtn');
@@ -506,7 +526,7 @@ function setListening(val) {
   if (val) {
     btn.classList.add('listening');
     btn.textContent = '🔴';
-    status.textContent = '🎤 录音中… 点击🎤停止';
+    status.textContent = '🎤 录音中… 点击🎤停止 · 自动续听';
     status.className = 'mic-status listening';
   } else {
     btn.classList.remove('listening');
