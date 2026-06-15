@@ -379,14 +379,16 @@ function setRecording(recording, processing) {
 async function processAudio(blob) {
   const apiKey = getApiKey();
   if (!apiKey) { setRecording(false, false); return; }
-  setRecording(false, true);
 
   try {
     // 音频转base64
     const buffer = await blob.arrayBuffer();
-    const base64Audio = btoa(new Uint8Array(buffer).reduce((d, b) => d + String.fromCharCode(b), ''));
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64Audio = btoa(binary);
 
-    const prompt = `You are a professional interpreter. Transcribe the audio exactly as spoken. Then translate the transcribed text from ${LANG_MAP[srcLang].gemini} to ${LANG_MAP[dstLang].gemini}. 
+    const prompt = `You are a professional interpreter. Transcribe the audio exactly as spoken. Then translate the transcribed text from ${LANG_MAP[srcLang].gemini} to ${LANG_MAP[dstLang].gemini}.
 
 Respond in this exact JSON format (no markdown):
 {"transcript": "the transcribed text here", "translation": "the translation here"}`;
@@ -432,7 +434,6 @@ Respond in this exact JSON format (no markdown):
     } catch(e) {}
 
     if (!transcript && !translation) {
-      // fallback: 直接取返回内容
       const lines = text.split('\n').filter(l => l.trim());
       transcript = lines[0] || text;
       translation = text;
@@ -449,12 +450,9 @@ Respond in this exact JSON format (no markdown):
       if (autoSpeak) speak(translation);
     }
 
-    // 自动续听
-    setTimeout(() => {
-      if (!isRecording && !isProcessing) {
-        startRecording();
-      }
-    }, 500);
+    // 重置状态后自动续听
+    setRecording(false, false);
+    setTimeout(() => startRecording(), 300);
 
   } catch(e) {
     showToast('⚠ 网络错误: ' + e.message);
