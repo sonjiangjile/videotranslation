@@ -5,61 +5,48 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Gemini 语音翻译</title>
+<title>Whisper 语音翻译</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-:root {
-  --bg: #f5f5f7; --card: #ffffff; --primary: #007aff;
-  --text: #1d1d1f; --text2: #86868b; --border: #e5e5ea;
-  --radius: 16px; --mic-active: #ff3b30;
-}
-body {
-  font-family: -apple-system,BlinkMacSystemFont,'SF Pro','Hiragino Sans GB','PingFang SC','Microsoft YaHei', sans-serif;
-  background: var(--bg); color: var(--text);
-  min-height: 100vh; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0;
-}
+:root { --bg: #f5f5f7; --card: #fff; --primary: #007aff; --text: #1d1d1f; --text2: #86868b; --border: #e5e5ea; --radius: 16px; --active: #ff3b30; }
+body { font-family: -apple-system,BlinkMacSystemFont,'SF Pro','Hiragino Sans GB','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0; }
 .header { background: var(--card); padding: 14px 16px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
 .header h1 { font-size: 20px; font-weight: 600; text-align: center; }
 .header p { font-size: 11px; color: var(--text2); text-align: center; margin-top: 2px; }
-.key-bar { background: #fff8e1; padding: 8px 16px; border-bottom: 1px solid #ffe082; display: flex; gap: 6px; align-items: center; }
-.key-bar input { flex: 1; border: 1px solid #ffe082; border-radius: 8px; padding: 6px 10px; font-size: 13px; background: #fff; outline: none; font-family: inherit; }
-.key-bar input:focus { border-color: var(--primary); }
-.key-bar label { font-size: 11px; color: #795548; white-space: nowrap; font-weight: 500; }
+.key-row { background: #fff8e1; padding: 6px 16px; border-bottom: 1px solid #ffe082; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.key-row input { flex: 1; min-width: 80px; border: 1px solid #ffe082; border-radius: 6px; padding: 4px 8px; font-size: 12px; background: #fff; outline: none; font-family: inherit; }
+.key-row input:focus { border-color: var(--primary); }
+.key-row label { font-size: 10px; color: #795548; white-space: nowrap; font-weight: 500; }
 .lang-bar { display: flex; background: var(--card); padding: 10px 16px; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
 .lang-group { text-align: center; }
 .lang-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
 .lang-btns { display: flex; gap: 4px; }
-.lang-btn { padding: 5px 10px; border: 1.5px solid var(--border); background: var(--card); border-radius: 14px; font-size: 12px; font-weight: 500; color: var(--text); cursor: pointer; -webkit-tap-highlight-color: transparent; transition: all .2s; }
+.lang-btn { padding: 5px 10px; border: 1.5px solid var(--border); background: var(--card); border-radius: 14px; font-size: 12px; font-weight: 500; color: var(--text); cursor: pointer; transition: all .2s; }
 .lang-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 .lang-swap { width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--card); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin: 0 8px; flex-shrink: 0; }
-.mic-area { display: flex; flex-direction: column; align-items: center; padding: 20px 16px 12px; }
-.mic-btn {
-  width: 80px; height: 80px; border-radius: 50%; border: none;
-  background: var(--primary); color: #fff; font-size: 34px;
-  cursor: pointer; transition: all .3s; box-shadow: 0 4px 20px rgba(0,122,255,.3);
-  display: flex; align-items: center; justify-content: center;
-}
-.mic-btn.listening { background: var(--mic-active); box-shadow: 0 4px 30px rgba(255,59,48,.5); animation: pulse 1.5s infinite; }
+.mic-area { display: flex; flex-direction: column; align-items: center; padding: 20px 16px 10px; }
+.mic-btn { width: 80px; height: 80px; border-radius: 50%; border: none; background: var(--primary); color: #fff; font-size: 34px; cursor: pointer; transition: all .3s; box-shadow: 0 4px 20px rgba(0,122,255,.3); display: flex; align-items: center; justify-content: center; }
+.mic-btn.recording { background: var(--active); box-shadow: 0 4px 30px rgba(255,59,48,.5); animation: pulse 1.5s infinite; }
 .mic-btn.busy { background: #666; box-shadow: none; animation: none; }
 @keyframes pulse { 0% { box-shadow: 0 4px 20px rgba(255,59,48,.3); } 50% { box-shadow: 0 4px 40px rgba(255,59,48,.6); } 100% { box-shadow: 0 4px 20px rgba(255,59,48,.3); } }
 .mic-status { font-size: 12px; color: var(--text2); margin-top: 8px; text-align: center; min-height: 18px; }
-.mic-status.active { color: var(--mic-active); font-weight: 500; }
+.mic-status.active { color: var(--active); font-weight: 500; }
 .toggle-row { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 0 16px 12px; font-size: 12px; color: var(--text2); }
 .toggle { position: relative; width: 40px; height: 24px; background: #e5e5ea; border-radius: 12px; cursor: pointer; transition: background .3s; }
 .toggle.on { background: var(--primary); }
 .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform .3s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .toggle.on::after { transform: translateX(16px); }
-.translate-box { padding: 0 16px 10px; }
+.box { padding: 0 16px 10px; }
 .card { background: var(--card); border-radius: var(--radius); padding: 14px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
 .card-label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-.card-label .lang-tag { font-size: 10px; background: #e8f0fe; color: var(--primary); padding: 1px 5px; border-radius: 4px; }
+.card-label .tag { font-size: 10px; background: #e8f0fe; color: var(--primary); padding: 1px 5px; border-radius: 4px; }
 .card-text { font-size: 15px; line-height: 1.6; min-height: 22px; word-break: break-word; }
 .card-text .hint { color: #c7c7cc; font-style: italic; }
 .card-text.fade-in { animation: fadeIn .3s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-.actions-row { display: flex; gap: 6px; margin-top: 8px; }
-.actions-row .act { padding: 6px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer; text-align: center; flex: 1; }
-.actions-row .act:active { background: var(--border); }
+.actions { display: flex; gap: 6px; margin-top: 8px; }
+.actions .btn { padding: 6px 12px; border: 1px solid var(--border); background: var(--card); border-radius: 8px; font-size: 12px; color: var(--text); cursor: pointer; text-align: center; flex: 1; }
+.actions .btn:active { background: var(--border); }
 .manual-area { padding: 0 16px 10px; }
 .manual-toggle { text-align: center; padding: 6px; font-size: 12px; color: var(--primary); cursor: pointer; }
 .manual-box { display: none; }
@@ -74,27 +61,29 @@ body {
 .hi-meta { font-size: 10px; color: var(--text2); margin-top: 3px; }
 .hi-copy { float: right; border: none; background: none; color: var(--text2); font-size: 12px; cursor: pointer; padding: 2px 4px; }
 .clear-btn { border: none; background: none; color: var(--primary); font-size: 12px; cursor: pointer; }
-.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,.8); color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 100; }
+.toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,.8); color: #fff; padding: 8px 16px; border-radius: 8px; font-size: 13px; opacity: 0; transition: all .3s; pointer-events: none; z-index: 100; backdrop-filter: blur(10px); }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🎤 Gemini 语音翻译</h1>
-  <p>浏览器语音流 + Gemini 纠错翻译 · 一次点击持续使用</p>
+  <h1>🎤 Whisper 语音翻译</h1>
+  <p>OpenAI Whisper 识别 + Gemini 翻译 · 一次点击持续使用</p>
 </div>
 
-<div class="key-bar">
-  <label>Gemini Key</label>
-  <input type="password" id="apiKeyInput" placeholder="输入你的 Gemini API Key" />
+<div class="key-row">
+  <label>OpenAI</label>
+  <input type="password" id="openaiKey" placeholder="sk-..." />
+  <label>Gemini</label>
+  <input type="password" id="geminiKey" placeholder="AI..." />
 </div>
 
 <div class="lang-bar">
   <div class="lang-group">
     <div class="lang-label" id="labelSrc">中文</div>
     <div class="lang-btns">
-      <button class="lang-btn active" data-lang="zh-CN" onclick="setLang('src',this)">中文</button>
+      <button class="lang-btn active" data-lang="zh" onclick="setLang('src',this)">中文</button>
       <button class="lang-btn" data-lang="ja" onclick="setLang('src',this)">日文</button>
       <button class="lang-btn" data-lang="en" onclick="setLang('src',this)">英文</button>
     </div>
@@ -103,7 +92,7 @@ body {
   <div class="lang-group">
     <div class="lang-label" id="labelDst">日本語</div>
     <div class="lang-btns">
-      <button class="lang-btn" data-lang="zh-CN" onclick="setLang('dst',this)">中文</button>
+      <button class="lang-btn" data-lang="zh" onclick="setLang('dst',this)">中文</button>
       <button class="lang-btn active" data-lang="ja" onclick="setLang('dst',this)">日文</button>
       <button class="lang-btn" data-lang="en" onclick="setLang('dst',this)">英文</button>
     </div>
@@ -112,25 +101,25 @@ body {
 
 <div class="mic-area">
   <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤</button>
-  <div class="mic-status" id="micStatus">点击🎤开始 · 说完自动续听</div>
+  <div class="mic-status" id="micStatus">点击🎤开始 · 说完自动翻译 · 循环续听</div>
 </div>
 
 <div class="toggle-row">
-  <span>自动朗读</span>
+  <span>自动朗读翻译</span>
   <div class="toggle on" id="autoSpeakToggle" onclick="toggleAutoSpeak()"></div>
 </div>
 
-<div class="translate-box">
+<div class="box">
   <div class="card">
-    <div class="card-label"><span>📝 识别文字</span><span class="lang-tag" id="srcTag">中文</span></div>
-    <div class="card-text" id="recogText"><span class="hint">等待语音输入…</span></div>
+    <div class="card-label"><span>📝 识别文字</span><span class="tag" id="srcTag">中文</span></div>
+    <div class="card-text" id="recogText"><span class="hint">等待语音…</span></div>
   </div>
   <div class="card">
-    <div class="card-label"><span>🌐 翻译结果</span><span class="lang-tag" id="dstTag">日本語</span></div>
-    <div class="card-text" id="transText"><span class="hint">Gemini 纠错翻译…</span></div>
-    <div class="actions-row">
-      <button class="act" onclick="copyTrans()">📋 复制</button>
-      <button class="act" onclick="speakTrans()">🔊 朗读</button>
+    <div class="card-label"><span>🌐 翻译结果</span><span class="tag" id="dstTag">日本語</span></div>
+    <div class="card-text" id="transText"><span class="hint">Gemini 翻译…</span></div>
+    <div class="actions">
+      <button class="btn" onclick="copyTrans()">📋 复制</button>
+      <button class="btn" onclick="speakTrans()">🔊 朗读</button>
     </div>
   </div>
 </div>
@@ -138,7 +127,7 @@ body {
 <div class="manual-area">
   <div class="manual-toggle" onclick="toggleManual()">✏️ 键盘输入</div>
   <div class="manual-box" id="manualBox">
-    <textarea id="manualInput" placeholder="输入文字后自动翻译…" oninput="onManualInput()"></textarea>
+    <textarea id="manualInput" placeholder="输入后自动翻译…" oninput="onManualInput()"></textarea>
   </div>
 </div>
 
@@ -150,36 +139,37 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
-// ── config ──
-const GEMINI_MODEL = 'gemini-3.5-flash';
 const LANG = {
-  'zh-CN': { label: '中文', recog: 'zh-CN', tts: 'zh-CN' },
-  'ja':     { label: '日本語', recog: 'ja-JP', tts: 'ja' },
-  'en':     { label: 'English', recog: 'en-US', tts: 'en-US' },
+  zh: { label: '中文', whisper: 'zh', tts: 'zh-CN', gemini: 'Chinese' },
+  ja: { label: '日本語', whisper: 'ja', tts: 'ja', gemini: 'Japanese' },
+  en: { label: 'English', whisper: 'en', tts: 'en-US', gemini: 'English' },
 };
-let srcLang = 'zh-CN';
-let dstLang = 'ja';
+let srcLang = 'zh', dstLang = 'ja';
 let autoSpeak = true;
-let isActive = false;       // 麦克风是否在运行
-let translating = false;    // 正在翻译中
-let recognition = null;
-let history = [];
-let manualShowing = false;
+let isActive = false, isBusy = false;
+let mediaRecorder = null, audioChunks = [];
+let stream = null, audioCtx = null;
+let silenceTimer = null;
+let history = [], manualOpen = false;
 
-// 加载保存
 try {
-  const k = localStorage.getItem('gk');
-  if (k) document.getElementById('apiKeyInput').value = k;
-  const h = localStorage.getItem('gh');
+  const d = localStorage.getItem('wk');
+  if (d) { document.getElementById('openaiKey').value = d; }
+  const g = localStorage.getItem('gk2');
+  if (g) { document.getElementById('geminiKey').value = g; }
+  const h = localStorage.getItem('wh');
   if (h) history = JSON.parse(h);
 } catch(e) {}
 renderHistory();
 
-function getApiKey() {
-  const k = document.getElementById('apiKeyInput').value.trim();
-  if (!k) { showToast('⚠ 请输入 Gemini API Key'); return null; }
-  localStorage.setItem('gk', k);
-  return k;
+function getKeys() {
+  const ok = document.getElementById('openaiKey').value.trim();
+  const gk = document.getElementById('geminiKey').value.trim();
+  if (!ok) { showToast('⚠ 请输入 OpenAI API Key'); return null; }
+  if (!gk) { showToast('⚠ 请输入 Gemini API Key'); return null; }
+  localStorage.setItem('wk', ok);
+  localStorage.setItem('gk2', gk);
+  return { openai: ok, gemini: gk };
 }
 
 function setLang(role, btn) {
@@ -192,199 +182,222 @@ function setLang(role, btn) {
   document.getElementById('srcTag').textContent = LANG[srcLang].label;
   document.getElementById('dstTag').textContent = LANG[dstLang].label;
 }
-
 function swapLang() {
   [srcLang, dstLang] = [dstLang, srcLang];
   document.getElementById('labelSrc').textContent = LANG[srcLang].label;
   document.getElementById('labelDst').textContent = LANG[dstLang].label;
   document.getElementById('srcTag').textContent = LANG[srcLang].label;
   document.getElementById('dstTag').textContent = LANG[dstLang].label;
-  document.querySelectorAll('.lang-group:first-child .lang-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.lang === srcLang));
-  document.querySelectorAll('.lang-group:last-child .lang-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.lang === dstLang));
+  document.querySelectorAll('.lang-group:first-child .lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === srcLang));
+  document.querySelectorAll('.lang-group:last-child .lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === dstLang));
 }
 
 // ── 麦克风 ──
 function toggleMic() {
-  if (isActive) {
-    stopListening();
-  } else {
-    if (!getApiKey()) return;
-    startListening();
-  }
+  if (isActive || isBusy) { stopAll(); }
+  else { if (!getKeys()) return; startRec(); }
 }
 
-function startListening() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) { showToast('⚠ 浏览器不支持语音识别'); return; }
-
-  if (recognition) recognition.abort();
-  recognition = new SR();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = LANG[srcLang].recog;
-
-  let lastFinal = '';
-
-  recognition.onresult = (e) => {
-    let final = '';
-    let interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) final += e.results[i][0].transcript;
-      else interim += e.results[i][0].transcript;
-    }
-    // 显示实时结果
-    const display = final + interim;
-    if (display.trim()) {
-      document.getElementById('recogText').textContent = display;
-    }
-
-    // 每段完整句子触发翻译
-    if (final.trim() && final.trim() !== lastFinal) {
-      lastFinal = final.trim();
-      correctAndTranslate(final.trim());
-    }
-  };
-
-  recognition.onerror = (e) => {
-    if (e.error === 'no-speech' || e.error === 'aborted') return;
-    showToast('⚠ 语音错误: ' + e.error);
-  };
-
-  recognition.onend = () => {
-    if (isActive) {
-      // 自动重启
-      try { recognition.start(); } catch(e) {}
-    }
-  };
-
+async function startRec() {
   try {
-    recognition.start();
-    isActive = true;
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    const mt = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus'
+            : MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm'
+            : MediaRecorder.isTypeSupported('audio/ogg;codecs=opus') ? 'audio/ogg;codecs=opus'
+            : 'audio/webm';
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType: mt });
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => { handleAudioStop(); };
+    mediaRecorder.start();
+
+    // 音量检测
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = audioCtx.createMediaStreamSource(stream);
+    const analyzer = audioCtx.createAnalyser();
+    analyzer.fftSize = 256;
+    src.connect(analyzer);
+
+    let silentSince = null;
+    function checkVolume() {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') return;
+      const data = new Uint8Array(analyzer.frequencyBinCount);
+      analyzer.getByteFrequencyData(data);
+      const vol = data.reduce((a, b) => a + b, 0) / data.length / 255;
+
+      if (vol < 0.02) {
+        if (silentSince === null) silentSince = Date.now();
+        else if (Date.now() - silentSince > 1500 && audioChunks.length > 1) {
+          // 静音1.5秒且有录音内容 → 停止
+          mediaRecorder.stop();
+          return;
+        }
+      } else {
+        silentSince = null;
+      }
+      requestAnimationFrame(checkVolume);
+    }
+    checkVolume();
+
+    isActive = true; isBusy = false;
     updateUI();
-    showToast('🎤 录音中…');
   } catch(e) {
-    showToast('⚠ 启动失败');
+    showToast('⚠ 麦克风访问被拒绝');
   }
 }
 
-function stopListening() {
-  isActive = false;
-  if (recognition) {
-    try { recognition.stop(); } catch(e) {}
-    recognition = null;
+function handleAudioStop() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  isActive = false; isBusy = true;
+  updateUI();
+
+  const blob = new Blob(audioChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+  if (blob.size < 2000) {
+    showToast('⚠ 录音太短');
+    isBusy = false;
+    // 自动重启
+    if (!isActive) startRec();
+    return;
   }
+  whisperTranscribe(blob);
+}
+
+function stopAll() {
+  isActive = false; isBusy = false;
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') { try { mediaRecorder.stop(); } catch(e) {} }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (audioCtx) { audioCtx.close(); audioCtx = null; }
+  mediaRecorder = null;
   updateUI();
 }
 
 function updateUI() {
   const btn = document.getElementById('micBtn');
   const st = document.getElementById('micStatus');
-  if (translating) {
-    btn.className = 'mic-btn busy';
-    btn.textContent = '⏳';
-    st.textContent = 'Gemini 翻译中…';
-    st.className = 'mic-status';
+  if (isBusy) {
+    btn.className = 'mic-btn busy'; btn.textContent = '⏳';
+    st.textContent = 'Whisper 识别中…'; st.className = 'mic-status';
   } else if (isActive) {
-    btn.className = 'mic-btn listening';
-    btn.textContent = '🔴';
-    st.textContent = '🎤 聆听中… 说完自动翻译';
-    st.className = 'mic-status active';
+    btn.className = 'mic-btn recording'; btn.textContent = '🔴';
+    st.textContent = '🎤 录音中… 静音后自动翻译'; st.className = 'mic-status active';
   } else {
-    btn.className = 'mic-btn';
-    btn.textContent = '🎤';
-    st.textContent = '点击🎤开始 · 说完自动续听';
-    st.className = 'mic-status';
+    btn.className = 'mic-btn'; btn.textContent = '🎤';
+    st.textContent = '点击🎤开始 · 说完自动翻译 · 循环续听'; st.className = 'mic-status';
   }
 }
 
-// ── Gemini 纠错+翻译 ──
-let transQueue = Promise.resolve();
+// ── Whisper API ──
+async function whisperTranscribe(blob) {
+  const keys = getKeys();
+  if (!keys) { isBusy = false; updateUI(); return; }
 
-function correctAndTranslate(text) {
-  // 避免重复翻译相同文字
-  if (translating) return;
-  translating = true;
-  updateUI();
+  try {
+    const form = new FormData();
+    form.append('file', blob, 'audio.webm');
+    form.append('model', 'whisper-1');
+    form.append('language', LANG[srcLang].whisper);
+    form.append('response_format', 'json');
 
-  transQueue = transQueue.then(async () => {
-    try {
-      const prompt = `You are a professional interpreter. The following text was recognized by speech recognition. First, correct any recognition errors. Then translate the corrected text from ${LANG[srcLang].label} to ${LANG[dstLang].label}.
+    const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${keys.openai}` },
+      body: form
+    });
 
-Respond in this exact JSON format (no markdown):
-{"corrected": "the corrected text here", "translation": "the translation here"}
+    if (!resp.ok) {
+      const err = await resp.text();
+      if (resp.status === 401) showToast('⚠ OpenAI Key 无效');
+      else if (resp.status === 429) showToast('⚠ API 配额超限');
+      else showToast(`⚠ Whisper 错误 ${resp.status}`);
+      isBusy = false; updateUI();
+      if (!isActive) startRec();
+      return;
+    }
+
+    const data = await resp.json();
+    const transcript = (data.text || '').trim();
+    if (!transcript) {
+      showToast('⚠ 未识别到语音');
+      isBusy = false; updateUI();
+      if (!isActive) startRec();
+      return;
+    }
+
+    document.getElementById('recogText').textContent = transcript;
+    document.getElementById('recogText').className = 'card-text fade-in';
+
+    // 用 Gemini 翻译
+    await geminiTranslate(transcript);
+
+  } catch(e) {
+    showToast('⚠ 网络错误');
+    isBusy = false; updateUI();
+    if (!isActive) startRec();
+  }
+}
+
+// ── Gemini 翻译 ──
+async function geminiTranslate(text) {
+  const keys = getKeys();
+  try {
+    const prompt = `Translate the following text from ${LANG[srcLang].gemini} to ${LANG[dstLang].gemini}. Respond with ONLY the translation, no explanation, no quotes, no markdown.
 
 Text: ${text}`;
 
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getApiKey()}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        }
-      );
-
-      if (!resp.ok) {
-        if (resp.status === 429) showToast('⚠ API 配额超限');
-        else showToast(`⚠ API 错误 ${resp.status}`);
-        translating = false;
-        updateUI();
-        return;
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${keys.gemini}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
       }
+    );
 
-      const data = await resp.json();
-      const result = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      let corrected = '', translation = '';
-
-      try {
-        const m = result.match(/\{[\s\S]*"translation"[\s\S]*\}/);
-        if (m) {
-          const p = JSON.parse(m[0]);
-          corrected = p.corrected || text;
-          translation = p.translation || '';
-        }
-      } catch(e) {}
-
-      if (corrected) {
-        document.getElementById('recogText').textContent = corrected;
-        document.getElementById('recogText').className = 'card-text fade-in';
-      }
-      if (translation) {
-        document.getElementById('transText').textContent = translation;
-        document.getElementById('transText').className = 'card-text fade-in';
-        addHistory(corrected || text, translation);
-        if (autoSpeak) {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(translation);
-          u.lang = LANG[dstLang].tts;
-          u.rate = 0.9;
-          window.speechSynthesis.speak(u);
-        }
-      }
-    } catch(e) {
-      showToast('⚠ 网络错误');
+    if (!resp.ok) {
+      showToast(`⚠ Gemini 错误 ${resp.status}`);
+      isBusy = false; updateUI();
+      if (!isActive) startRec();
+      return;
     }
-    translating = false;
-    updateUI();
-  });
+
+    const data = await resp.json();
+    const translation = (data?.candidates?.[0]?.content?.parts?.[0]?.text || '').trim();
+
+    if (translation) {
+      document.getElementById('transText').textContent = translation;
+      document.getElementById('transText').className = 'card-text fade-in';
+      addHistory(text, translation);
+
+      if (autoSpeak) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(translation);
+        u.lang = LANG[dstLang].tts;
+        u.rate = 0.9;
+        window.speechSynthesis.speak(u);
+      }
+    }
+  } catch(e) {
+    showToast('⚠ 翻译网络错误');
+  }
+
+  // 完成 → 自动重启录音
+  isBusy = false;
+  updateUI();
+  if (!isActive) startRec();
 }
 
 // ── 朗读 ──
 function speakTrans() {
   const t = document.getElementById('transText').textContent;
-  if (!t || t === 'Gemini 纠错翻译…') return;
+  if (!t || t === 'Gemini 翻译…') return;
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(t);
-  u.lang = LANG[dstLang].tts;
-  u.rate = 0.9;
+  u.lang = LANG[dstLang].tts; u.rate = 0.9;
   window.speechSynthesis.speak(u);
   showToast('🔊 朗读');
 }
-
 function toggleAutoSpeak() {
   autoSpeak = !autoSpeak;
   document.getElementById('autoSpeakToggle').classList.toggle('on', autoSpeak);
@@ -392,40 +405,26 @@ function toggleAutoSpeak() {
 
 // ── 手动翻译 ──
 function toggleManual() {
-  manualShowing = !manualShowing;
-  document.getElementById('manualBox').classList.toggle('show', manualShowing);
-  if (manualShowing) document.getElementById('manualInput').focus();
+  manualOpen = !manualOpen;
+  document.getElementById('manualBox').classList.toggle('show', manualOpen);
+  if (manualOpen) document.getElementById('manualInput').focus();
 }
 let manualTimer;
 function onManualInput() {
   clearTimeout(manualTimer);
   const t = document.getElementById('manualInput').value.trim();
   if (!t) { document.getElementById('transText').innerHTML = '<span class="hint">输入后自动翻译…</span>'; return; }
-  if (!getApiKey()) return;
   document.getElementById('recogText').textContent = t;
-  manualTimer = setTimeout(() => doManualTranslate(t), 600);
-}
-async function doManualTranslate(text) {
-  const out = document.getElementById('transText');
-  out.innerHTML = '⏳';
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${getApiKey()}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: `Translate from ${LANG[srcLang].label} to ${LANG[dstLang].label}. Reply ONLY the translation: ${text}` }] }] })
-    });
-    const d = await r.json();
-    const res = d?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '失败';
-    out.textContent = res;
-    out.className = 'card-text fade-in';
-    addHistory(text, res);
-  } catch(e) { out.innerHTML = '<span style="color:#ff3b30">⚠ 失败</span>'; }
+  manualTimer = setTimeout(() => {
+    document.getElementById('transText').innerHTML = '⏳';
+    geminiTranslate(t);
+  }, 600);
 }
 
 // ── 复制 ──
 function copyTrans() {
   const t = document.getElementById('transText').textContent;
-  if (!t || t === 'Gemini 纠错翻译…') return;
+  if (!t || t === 'Gemini 翻译…') return;
   navigator.clipboard.writeText(t).then(() => showToast('📋 已复制')).catch(() => {
     const ta = document.createElement('textarea'); ta.value = t;
     document.body.appendChild(ta); ta.select();
@@ -434,12 +433,12 @@ function copyTrans() {
 }
 
 // ── 历史 ──
-function addHistory(src, dst) {
+function addHistory(s, d) {
   const n = new Date();
   const t = n.toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
-  history.unshift({ src, dst, time: t, sl: LANG[srcLang].label, dl: LANG[dstLang].label });
+  history.unshift({ src: s, dst: d, time: t, sl: LANG[srcLang].label, dl: LANG[dstLang].label });
   if (history.length > 50) history.pop();
-  try { localStorage.setItem('gh', JSON.stringify(history)); } catch(e) {}
+  localStorage.setItem('wh', JSON.stringify(history));
   renderHistory();
 }
 function renderHistory() {
@@ -447,7 +446,7 @@ function renderHistory() {
   if (!history.length) { el.innerHTML = '<div style="text-align:center;color:#c7c7cc;padding:16px;font-size:13px">暂无记录</div>'; return; }
   el.innerHTML = history.map(h => `<div class="history-item"><button class="hi-copy" onclick="copyText('${escHtml(h.dst)}')">复制</button><div class="hi-src">${escHtml(h.src)}</div><div class="hi-dst">${escHtml(h.dst)}</div><div class="hi-meta">${h.sl} → ${h.dl} · ${h.time}</div></div>`).join('');
 }
-function clearHistory() { history = []; localStorage.setItem('gh', '[]'); renderHistory(); showToast('已清除'); }
+function clearHistory() { history = []; localStorage.setItem('wh', '[]'); renderHistory(); showToast('已清除'); }
 function copyText(t) {
   navigator.clipboard.writeText(t).then(() => showToast('📋 已复制')).catch(() => {
     const ta = document.createElement('textarea'); ta.value = t;
@@ -456,9 +455,8 @@ function copyText(t) {
   });
 }
 function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
+function showToast(m) {
+  const t = document.getElementById('toast'); t.textContent = m; t.classList.add('show');
   clearTimeout(t._hide); t._hide = setTimeout(() => t.classList.remove('show'), 2000);
 }
 </script>
