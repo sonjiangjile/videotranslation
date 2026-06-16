@@ -13,10 +13,15 @@ body { font-family: -apple-system,BlinkMacSystemFont,'SF Pro','Hiragino Sans GB'
 .header { background: var(--card); padding: 14px 16px 10px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
 .header h1 { font-size: 20px; font-weight: 600; text-align: center; }
 .header p { font-size: 11px; color: var(--text2); text-align: center; margin-top: 2px; }
-.key-row { background: #fff8e1; padding: 6px 16px; border-bottom: 1px solid #ffe082; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
-.key-row input { flex: 1; min-width: 80px; border: 1px solid #ffe082; border-radius: 6px; padding: 4px 8px; font-size: 12px; background: #fff; outline: none; font-family: inherit; }
-.key-row input:focus { border-color: var(--primary); }
-.key-row label { font-size: 10px; color: #795548; white-space: nowrap; font-weight: 500; }
+.key-bar { background: #fff8e1; padding: 6px 16px; border-bottom: 1px solid #ffe082; display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.key-bar input { flex: 1; min-width: 80px; border: 1px solid #ffe082; border-radius: 6px; padding: 4px 8px; font-size: 12px; background: #fff; outline: none; font-family: inherit; }
+.key-bar input:focus { border-color: var(--primary); }
+.key-bar label { font-size: 10px; color: #795548; white-space: nowrap; font-weight: 500; }
+.key-bar.saved { justify-content: space-between; }
+.key-bar.saved span { font-size: 12px; color: #2e7d32; font-weight: 500; }
+.key-save, .key-change { border: none; border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer; font-weight: 500; }
+.key-save { background: #2e7d32; color: #fff; }
+.key-change { background: #e0e0e0; color: #333; }
 .lang-bar { display: flex; background: var(--card); padding: 10px 16px; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); }
 .lang-group { text-align: center; }
 .lang-label { font-size: 11px; color: var(--text2); margin-bottom: 3px; }
@@ -72,11 +77,16 @@ body { font-family: -apple-system,BlinkMacSystemFont,'SF Pro','Hiragino Sans GB'
   <p>OpenAI Whisper 识别 + Gemini 翻译 · 一次点击持续使用</p>
 </div>
 
-<div class="key-row">
+<div class="key-bar" id="keyBar">
   <label>OpenAI</label>
   <input type="password" id="openaiKey" placeholder="sk-..." />
   <label>Gemini</label>
   <input type="password" id="geminiKey" placeholder="AI..." />
+  <button class="key-save" onclick="saveKeys()">✓</button>
+</div>
+<div class="key-bar saved" id="keySaved" style="display:none">
+  <span id="keyHint">✅ API Keys 已设置</span>
+  <button class="key-change" onclick="showKeyInput()">更换</button>
 </div>
 
 <div class="lang-bar">
@@ -159,17 +169,43 @@ try {
   if (g) { document.getElementById('geminiKey').value = g; }
   const h = localStorage.getItem('wh');
   if (h) history = JSON.parse(h);
+  // 如果已有保存的key，隐藏输入框
+  if (d && g) { showSavedState(); }
 } catch(e) {}
 renderHistory();
 
 function getKeys() {
   const ok = document.getElementById('openaiKey').value.trim();
   const gk = document.getElementById('geminiKey').value.trim();
-  if (!ok) { showToast('⚠ 请输入 OpenAI API Key'); return null; }
-  if (!gk) { showToast('⚠ 请输入 Gemini API Key'); return null; }
+  if (!ok || !gk) {
+    showToast('⚠ 请先设置 API Keys');
+    showKeyInput();
+    return null;
+  }
   localStorage.setItem('wk', ok);
   localStorage.setItem('gk2', gk);
   return { openai: ok, gemini: gk };
+}
+
+function saveKeys() {
+  const ok = document.getElementById('openaiKey').value.trim();
+  const gk = document.getElementById('geminiKey').value.trim();
+  if (!ok) { showToast('请输入 OpenAI Key'); return; }
+  if (!gk) { showToast('请输入 Gemini Key'); return; }
+  localStorage.setItem('wk', ok);
+  localStorage.setItem('gk2', gk);
+  showSavedState();
+  showToast('✅ Keys 已保存');
+}
+
+function showSavedState() {
+  document.getElementById('keyBar').style.display = 'none';
+  document.getElementById('keySaved').style.display = 'flex';
+}
+
+function showKeyInput() {
+  document.getElementById('keyBar').style.display = 'flex';
+  document.getElementById('keySaved').style.display = 'none';
 }
 
 function setLang(role, btn) {
