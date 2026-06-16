@@ -73,19 +73,17 @@ body { font-family: -apple-system,BlinkMacSystemFont,'SF Pro','Hiragino Sans GB'
 <body>
 
 <div class="header">
-  <h1>🎤 Whisper 语音翻译</h1>
-  <p>OpenAI Whisper 识别 + Gemini 翻译 · 一次点击持续使用</p>
+  <h1>🎤 本地 Whisper 语音翻译</h1>
+  <p>电脑本地 Whisper 识别 + Gemini 翻译 · 一次点击持续使用</p>
 </div>
 
 <div class="key-bar" id="keyBar">
-  <label>OpenAI</label>
-  <input type="password" id="openaiKey" placeholder="sk-..." />
-  <label>Gemini</label>
-  <input type="password" id="geminiKey" placeholder="AI..." />
+  <label>Gemini Key</label>
+  <input type="password" id="geminiKey" placeholder="AIza..." />
   <button class="key-save" onclick="saveKeys()">✓</button>
 </div>
 <div class="key-bar saved" id="keySaved" style="display:none">
-  <span id="keyHint">✅ API Keys 已设置</span>
+  <span id="keyHint">✅ Gemini Key 已设置</span>
   <button class="key-change" onclick="showKeyInput()">更换</button>
 </div>
 
@@ -163,39 +161,31 @@ let silenceTimer = null;
 let history = [], manualOpen = false;
 
 try {
-  const d = localStorage.getItem('wk');
-  if (d) { document.getElementById('openaiKey').value = d; }
-  const g = localStorage.getItem('gk2');
+  const g = localStorage.getItem('gk3');
   if (g) { document.getElementById('geminiKey').value = g; }
   const h = localStorage.getItem('wh');
   if (h) history = JSON.parse(h);
-  // 如果已有保存的key，隐藏输入框
-  if (d && g) { showSavedState(); }
+  if (g) { showSavedState(); }
 } catch(e) {}
 renderHistory();
 
 function getKeys() {
-  const ok = document.getElementById('openaiKey').value.trim();
   const gk = document.getElementById('geminiKey').value.trim();
-  if (!ok || !gk) {
-    showToast('⚠ 请先设置 API Keys');
+  if (!gk) {
+    showToast('⚠ 请先设置 Gemini API Key');
     showKeyInput();
     return null;
   }
-  localStorage.setItem('wk', ok);
-  localStorage.setItem('gk2', gk);
-  return { openai: ok, gemini: gk };
+  localStorage.setItem('gk3', gk);
+  return gk;
 }
 
 function saveKeys() {
-  const ok = document.getElementById('openaiKey').value.trim();
   const gk = document.getElementById('geminiKey').value.trim();
-  if (!ok) { showToast('请输入 OpenAI Key'); return; }
   if (!gk) { showToast('请输入 Gemini Key'); return; }
-  localStorage.setItem('wk', ok);
-  localStorage.setItem('gk2', gk);
+  localStorage.setItem('gk3', gk);
   showSavedState();
-  showToast('✅ Keys 已保存');
+  showToast('✅ Gemini Key 已保存');
 }
 
 function showSavedState() {
@@ -324,29 +314,24 @@ function updateUI() {
   }
 }
 
-// ── Whisper API ──
+// ── 本地 Whisper ──
 async function whisperTranscribe(blob) {
-  const keys = getKeys();
-  if (!keys) { isBusy = false; updateUI(); return; }
-
   try {
     const form = new FormData();
     form.append('file', blob, 'audio.webm');
-    form.append('model', 'whisper-1');
-    form.append('language', LANG[srcLang].whisper);
     form.append('response_format', 'json');
+    // 指定源语言
+    form.append('language', LANG[srcLang].whisper);
 
-    const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    // 通过代理接口转发到本地Whisper（同源请求，手机也能用）
+    const whisperUrl = '/transcribe';
+    const resp = await fetch(whisperUrl, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${keys.openai}` },
       body: form
     });
 
     if (!resp.ok) {
-      const err = await resp.text();
-      if (resp.status === 401) showToast('⚠ OpenAI Key 无效');
-      else if (resp.status === 429) showToast('⚠ API 配额超限');
-      else showToast(`⚠ Whisper 错误 ${resp.status}`);
+      showToast(`⚠ 本地Whisper错误 (${resp.status})`);
       isBusy = false; updateUI();
       if (!isActive) startRec();
       return;
@@ -354,7 +339,7 @@ async function whisperTranscribe(blob) {
 
     const data = await resp.json();
     const transcript = (data.text || '').trim();
-    if (!transcript) {
+    if (!transcript || transcript === ' [BLANK_AUDIO]' || transcript === ' [Silenced]') {
       showToast('⚠ 未识别到语音');
       isBusy = false; updateUI();
       if (!isActive) startRec();
@@ -368,22 +353,22 @@ async function whisperTranscribe(blob) {
     await geminiTranslate(transcript);
 
   } catch(e) {
-    showToast('⚠ 网络错误');
+    showToast('⚠ 无法连接本地Whisper服务 (端口9999)');
     isBusy = false; updateUI();
-    if (!isActive) startRec();
   }
 }
 
 // ── Gemini 翻译 ──
 async function geminiTranslate(text) {
-  const keys = getKeys();
+  const apiKey = getKeys();
+  if (!apiKey) { isBusy = false; updateUI(); return; }
   try {
     const prompt = `Translate the following text from ${LANG[srcLang].gemini} to ${LANG[dstLang].gemini}. Respond with ONLY the translation, no explanation, no quotes, no markdown.
 
 Text: ${text}`;
 
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${keys.gemini}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
